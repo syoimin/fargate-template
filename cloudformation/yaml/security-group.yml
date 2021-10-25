@@ -1,0 +1,129 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Security Group"
+
+Parameters:
+  Environment:
+    Type: String
+    Default: "STG"
+
+Mappings:
+  TagsMap:
+    EnvName:
+      Department: "部署"
+      Production: "プロダクション名"
+
+Resources:
+  SecurityGroupRDS:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub ${Environment}-RDS
+      SecurityGroupIngress:
+        - SourceSecurityGroupId: !Ref SecurityGroupFargate
+          IpProtocol: TCP
+          FromPort: 3306
+          ToPort: 3306
+      VpcId:
+        Fn::ImportValue: !Sub ${Environment}-VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-RDS
+        - Key: Environment
+          Value: !Ref Environment 
+        - Key: Department
+          Value: !FindInMap [ TagsMap, EnvName, Department ]
+        - Key: Production
+          Value: !FindInMap [ TagsMap, EnvName, Production ]
+  SecurityGroupRedis:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub ${Environment}-REDIS
+      SecurityGroupIngress:
+        - SourceSecurityGroupId: !Ref SecurityGroupFargate
+          IpProtocol: TCP
+          FromPort: 6379
+          ToPort: 6379
+      VpcId:
+        Fn::ImportValue: !Sub ${Environment}-VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-REDIS
+        - Key: Environment
+          Value: !Ref Environment 
+        - Key: Department
+          Value: !FindInMap [ TagsMap, EnvName, Department ]
+        - Key: Production
+          Value: !FindInMap [ TagsMap, EnvName, Production ]
+  SecurityGroupALB:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub ${Environment}-ALB
+      SecurityGroupIngress:      
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: TCP
+          FromPort: 443
+          ToPort: 443 
+      VpcId:
+        Fn::ImportValue: !Sub ${Environment}-VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-ALB
+        - Key: Environment
+          Value: !Ref Environment 
+        - Key: Department
+          Value: !FindInMap [ TagsMap, EnvName, Department ]
+        - Key: Production
+          Value: !FindInMap [ TagsMap, EnvName, Production ]
+  SecurityGroupFargate:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub ${Environment}-FARGATE
+      SecurityGroupIngress:
+        - SourceSecurityGroupId: !Ref SecurityGroupALB
+          IpProtocol: TCP
+          FromPort: 80
+          ToPort: 80
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: TCP
+          FromPort: 80
+          ToPort: 80
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: TCP
+          FromPort: 443
+          ToPort: 443
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: TCP
+          FromPort: 6379
+          ToPort: 6379
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: TCP
+          FromPort: 3306
+          ToPort: 3306
+      VpcId:
+        Fn::ImportValue: !Sub ${Environment}-VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-FARGATE
+        - Key: Environment
+          Value: !Ref Environment 
+        - Key: Department
+          Value: !FindInMap [ TagsMap, EnvName, Department ]
+        - Key: Production
+          Value: !FindInMap [ TagsMap, EnvName, Production ]
+Outputs:
+  SecurityGroupRDS:
+    Value: !Ref SecurityGroupRDS
+    Export:
+      Name: !Sub ${Environment}-SECURITYGROUP-RDS
+  SecurityGroupALB:
+    Value: !Ref SecurityGroupALB
+    Export:
+      Name: !Sub ${Environment}-SECURITYGROUP-ALB
+  SecurityGroupFargate:
+    Value: !Ref SecurityGroupFargate
+    Export:
+      Name: !Sub ${Environment}-SECURITYGROUP-FARGATE
+  SecurityGroupRedis:
+    Value: !Ref SecurityGroupRedis
+    Export:
+      Name: !Sub ${Environment}-SECURITYGROUP-REDIS

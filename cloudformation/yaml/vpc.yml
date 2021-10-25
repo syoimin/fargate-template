@@ -1,0 +1,334 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Virtual Private Cloud"
+
+Parameters:
+  Environment:
+    Type: String
+    Default: "STG"
+  VpcCIDR:
+    Type: String
+    Default: 10.0.0.0/16
+  SubnetPublic1CIDR:
+    Type: String
+    Default: 10.0.0.0/20
+  SubnetPublic2CIDR:
+    Type: String
+    Default: 10.0.16.0/20
+  SubnetPrivate1CIDR:
+    Type: String
+    Default: 10.0.32.0/20
+  SubnetPrivate2CIDR:
+    Type: String
+    Default: 10.0.48.0/20
+
+Mappings:
+  TagsMap:
+    EnvName:
+      Department: "部署"
+      Production: "プロダクション名"
+
+Resources:
+#
+# VPCの作成
+#
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-VPC
+        - Key: Environment
+          Value: !Ref Environment 
+        - Key: Department
+          Value: !FindInMap [ TagsMap, EnvName, Department ]
+        - Key: Production
+          Value: !FindInMap [ TagsMap, EnvName, Production ]
+
+#
+# InternetGatewayの作成とVPCへのアタッチ
+#
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-INTERNETGATEWAY
+        - Key: Environment
+          Value: !Ref Environment 
+        - Key: Department
+          Value: !FindInMap [ TagsMap, EnvName, Department ]
+        - Key: Production
+          Value: !FindInMap [ TagsMap, EnvName, Production ]
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+#
+# EIPの作成
+#
+  EIP1:
+    DependsOn: InternetGatewayAttachment
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags: 
+        - Key: Name
+          Value: !Sub ${Environment}-EIP
+        - Key: Environment
+          Value: !Ref Environment 
+        - Key: Department
+          Value: !FindInMap [ TagsMap, EnvName, Department ]
+        - Key: Production
+          Value: !FindInMap [ TagsMap, EnvName, Production ]
+  EIP2:
+    DependsOn: InternetGatewayAttachment
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags: 
+        - Key: Name
+          Value: !Sub ${Environment}-EIP
+        - Key: Environment
+          Value: !Ref Environment 
+        - Key: Department
+          Value: !FindInMap [ TagsMap, EnvName, Department ]
+        - Key: Production
+          Value: !FindInMap [ TagsMap, EnvName, Production ]          
+# 
+# NatGateway の作成 
+# 
+  NatGateway1:
+    Type: AWS::EC2::NatGateway
+    Properties: 
+      AllocationId:
+         Fn::GetAtt:
+         - EIP1
+         - AllocationId
+      SubnetId:
+         Ref: SubnetPublic1
+      Tags: 
+        - Key: Name
+          Value: !Sub ${Environment}-NATGATEWAY1
+        - Key: Environment
+          Value: !Ref Environment 
+        - Key: Department
+          Value: !FindInMap [ TagsMap, EnvName, Department ]
+        - Key: Production
+          Value: !FindInMap [ TagsMap, EnvName, Production ]
+  NatGateway2:
+    Type: AWS::EC2::NatGateway
+    Properties: 
+      AllocationId:
+         Fn::GetAtt:
+         - EIP2
+         - AllocationId
+      SubnetId:
+         Ref: SubnetPublic2
+      Tags: 
+        - Key: Name
+          Value: !Sub ${Environment}-NATGATEWAY2
+        - Key: Environment
+          Value: !Ref Environment 
+        - Key: Department
+          Value: !FindInMap [ TagsMap, EnvName, Department ]
+        - Key: Production
+          Value: !FindInMap [ TagsMap, EnvName, Production ]
+#
+# VPC内のサブネットを作成（2ゾーン）
+#
+  SubnetPublic1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs "" ]
+      MapPublicIpOnLaunch: false
+      CidrBlock: !Ref SubnetPublic1CIDR
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-SUBNET-PUBLIC1
+        - Key: Environment
+          Value: !Ref Environment 
+        - Key: Department
+          Value: !FindInMap [ TagsMap, EnvName, Department ]
+        - Key: Production
+          Value: !FindInMap [ TagsMap, EnvName, Production ]
+  SubnetPublic2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 1, !GetAZs "" ]
+      MapPublicIpOnLaunch: false
+      CidrBlock: !Ref SubnetPublic2CIDR
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-SUBNET-PUBLIC2
+        - Key: Environment
+          Value: !Ref Environment 
+        - Key: Department
+          Value: !FindInMap [ TagsMap, EnvName, Department ]
+        - Key: Production
+          Value: !FindInMap [ TagsMap, EnvName, Production ]
+  SubnetPrivate1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs "" ]
+      MapPublicIpOnLaunch: false
+      CidrBlock: !Ref SubnetPrivate1CIDR
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-SUBNET-PRIVATE1
+        - Key: Environment
+          Value: !Ref Environment 
+        - Key: Department
+          Value: !FindInMap [ TagsMap, EnvName, Department ]
+        - Key: Production
+          Value: !FindInMap [ TagsMap, EnvName, Production ]
+  SubnetPrivate2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 1, !GetAZs "" ]
+      MapPublicIpOnLaunch: false
+      CidrBlock: !Ref SubnetPrivate2CIDR
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-SUBNET-PRIVATE2
+        - Key: Environment
+          Value: !Ref Environment 
+        - Key: Department
+          Value: !FindInMap [ TagsMap, EnvName, Department ]
+        - Key: Production
+          Value: !FindInMap [ TagsMap, EnvName, Production ]
+#
+# ルートテーブルの作成
+#
+  RouteTablePublic1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-ROUTETABLE-PUBLIC1
+        - Key: Environment
+          Value: !Ref Environment 
+        - Key: Department
+          Value: !FindInMap [ TagsMap, EnvName, Department ]
+        - Key: Production
+          Value: !FindInMap [ TagsMap, EnvName, Production ]
+  RouteTablePublic2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-ROUTETABLE-PUBLIC2
+        - Key: Environment
+          Value: !Ref Environment 
+        - Key: Department
+          Value: !FindInMap [ TagsMap, EnvName, Department ]
+        - Key: Production
+          Value: !FindInMap [ TagsMap, EnvName, Production ]
+  RouteTablePrivate1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-ROUTETABLE-PRIVATE1
+        - Key: Environment
+          Value: !Ref Environment 
+        - Key: Department
+          Value: !FindInMap [ TagsMap, EnvName, Department ]
+        - Key: Production
+          Value: !FindInMap [ TagsMap, EnvName, Production ]
+  RouteTablePrivate2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${Environment}-ROUTETABLE-PRIVATE2
+        - Key: Environment
+          Value: !Ref Environment 
+        - Key: Department
+          Value: !FindInMap [ TagsMap, EnvName, Department ]
+        - Key: Production
+          Value: !FindInMap [ TagsMap, EnvName, Production ]
+#
+# デフォルトゲートウェイを Public Subnet のルートテーブルに設定
+#
+  DefaultRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTablePublic1
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  DefaultRoute2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTablePublic2
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+#
+# NatGatewayを Private Subnet のルートテーブルに設定
+#
+  NatGatewayRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTablePrivate1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+  NatGatewayRoute2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTablePrivate2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway2
+#
+# サブネットへルートテーブルの紐づけ
+#
+  SubnetPublic1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTablePublic1
+      SubnetId: !Ref SubnetPublic1
+  SubnetPublic2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTablePublic2
+      SubnetId: !Ref SubnetPublic2
+  SubnetPrivate1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTablePrivate1
+      SubnetId: !Ref SubnetPrivate1
+  SubnetPrivate2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTablePrivate2
+      SubnetId: !Ref SubnetPrivate2
+
+Outputs:
+  SubnetPublic1:
+    Value: !Ref SubnetPublic1
+    Export:
+      Name: !Sub ${Environment}-SUBNET-PUBLIC1
+  SubnetPublic2:
+    Value: !Ref SubnetPublic2
+    Export:
+      Name: !Sub ${Environment}-SUBNET-PUBLIC2
+  SubnetPrivate1:
+    Value: !Ref SubnetPrivate1
+    Export:
+      Name: !Sub ${Environment}-SUBNET-PRIVATE1
+  SubnetPrivate2:
+    Value: !Ref SubnetPrivate2
+    Export:
+      Name: !Sub ${Environment}-SUBNET-PRIVATE2
+  VpcId:
+    Value: !Ref VPC
+    Export:
+      Name: !Sub ${Environment}-VPC

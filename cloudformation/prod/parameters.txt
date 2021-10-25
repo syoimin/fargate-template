@@ -1,0 +1,6 @@
+Environment=PRD 
+VpcCIDR=10.0.0.0/16 
+SubnetPublic1CIDR=10.0.0.0/20
+SubnetPublic2CIDR=10.0.16.0/20
+SubnetPrivate1CIDR=10.0.32.0/20
+SubnetPrivate2CIDR=10.0.48.0/20

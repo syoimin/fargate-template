@@ -1,0 +1,53 @@
+server {
+    listen       8080;
+
+    root /var/www/html/public;
+    index index.php;
+    server_name ${ENV_SERVER_NAME};
+    charset UTF-8;
+    access_log  /var/log/nginx/access.log main;
+    error_log  /var/log/nginx/error.log  warn;
+
+    # 静的ファイルのキャッシュ
+    location ~ .*\.(html?|jpe?g|gif|png|css|js|ico|swf|inc) {
+        expires 1d;
+        access_log off;
+    }
+
+    # Laravel index.php
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    # php-fpm
+    location ~ \.php$ {
+        fastcgi_split_path_info ^(.+\.php)(\.+)$;
+        fastcgi_pass ${ENV_PHP_FPM_HOST}:9000;
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
+    }
+
+    # Elastic Load Balancingヘルスチェック
+    location = /elb-status {
+        access_log off;
+        return 200;
+    }
+
+    # faviconが存在しない場合は、
+    # メモリ上の1 1の空GIFファイルを返却（empty_gif）
+    # アクセスログを出力しない（access_log off）
+    # エラーログを出力しない（log_not_found off）
+    location = /favicon.ico {
+        empty_gif;
+        access_log  off;
+        log_not_found off;
+    }
+
+    # サーバエラー発生時は、"/50x.html"ページへ内部リダイレクトする。
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+}

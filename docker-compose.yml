@@ -1,0 +1,51 @@
+# ローカル確認用 docker-compose
+version: "3"
+
+services:
+  nginx:
+    tty: true
+    stdin_open: true
+    build:
+      context: .
+      dockerfile: ./dockerfile/nginx/Dockerfile
+      args:
+        - SERVER_NAME=localhost
+        - PHP_FPM_HOST=php-fpm
+    ports:
+      - "8080:8080"
+    depends_on:
+      - "php-fpm"
+    volumes:
+      - "src:/var/www/html"
+
+  php-fpm:
+    tty: true
+    stdin_open: true
+    build:
+      context: .
+      dockerfile: ./dockerfile/php-fpm/Dockerfile
+    ports:
+      - "9000:9000"
+    volumes:
+      - "src:/var/www/html"
+
+  # 検証用のためのDB。
+  mysql:
+    tty: true
+    stdin_open: true
+    image: "mysql:8.0"
+    ports:
+      - "${FORWARD_DB_PORT:-3306}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345678
+      MYSQL_DATABASE: test
+      MYSQL_USER: test
+      MYSQL_PASSWORD: 12345678
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    volumes:
+      - "vol:/var/lib/mysql"
+volumes:
+  vol:
+    driver: local
+  src:
+    driver: local

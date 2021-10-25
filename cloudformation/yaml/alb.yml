@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Application Load Balancer"
+
+Parameters:
+  Environment:
+    Type: String
+    Default: "STG"
+  ACMArn:
+    Type: String
+
+Mappings:
+  TagsMap:
+    EnvName:
+      Department: "部署"
+      Production: "プロダクション名"
+
+#
+# LoadBalancer
+# マルチゾーン
+#  
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Subnets:
+        - Fn::ImportValue: !Sub ${Environment}-SUBNET-PUBLIC1
+        - Fn::ImportValue: !Sub ${Environment}-SUBNET-PUBLIC2
+      SecurityGroups:
+        - Fn::ImportValue: !Sub ${Environment}-SECURITYGROUP-ALB
+#
+# LoadBalancer Listener
+# HTTPの80番にフォワード
+#
+  LoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn: TargetGroup
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+      Certificates:
+        - CertificateArn: !Ref ACMArn
+
+#
+# Target Group
+# ヘルスチェックはHTTPの80番のルートディレクトリ
+#
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: LoadBalancer
+    Properties:
+      VpcId:
+        Fn::ImportValue: !Sub ${ENVIRONMENT}-VPC
+      Port: 80
+      Protocol: HTTP
+      Matcher:
+        HttpCode: 200-299
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      TargetType: ip
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: 30
+#
+# Listener Rule
+#
+  ListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    DependsOn: TargetGroup
+    Properties:
+      ListenerArn: !Ref LoadBalancerListener
+      Priority: 1
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - /
+      Actions:
+        - TargetGroupArn: !Ref TargetGroup
+          Type: forward
+Outputs:
+  TargetGroup:
+    Value: !Ref TargetGroup
+    Export:
+      Name: !Sub ${Environment}-TARGETGROUP
