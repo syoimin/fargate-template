@@ -5,6 +5,35 @@
 構成（AWS 公式 Fargate サンプルと同等 https://aws.amazon.com/jp/cdp/ec-container/）
 ![Fargate 構成図](/ecs.png)
 
+## ディレクトリ構成
+
+```sh
+├── app-files      # アプリケーションフォルダをコピー
+├── cloudformation # Cloudformation の yaml と実行スクリプトを管理
+│   ├── prod       # 実行スクリプト。環境毎に分ける。プレフィックスの数字は実行順序
+│   │   ├── 010-vpc.sh
+│   │   ├── 020-security-group.sh
+│   │   ├── 030-alb.sh
+│   │   └── parameters.txt
+│   └── yaml       # Cloudformation のスタック
+│       ├── alb.yml
+│       ├── security-group.yml
+│       └── vpc.yml
+├── docker-compose.yml # アプリケーションコンテナを確認するための ローカル用の Docker
+├── dockerfiles
+│   ├── nginx
+│   │   ├── Dockerfile
+│   │   └── config
+│   │       ├── default.conf
+│   │       ├── nginx.conf
+│   │       └── virtualhost.conf.template # virtualhost の config テンプレート。setenv で各環境に合わせて変更
+│   └── php-fpm
+│       ├── Dockerfile
+│       ├── config
+│       │   └── zz-user.conf
+│       └── entrypoint.sh
+```
+
 ## アプリケーション
 
 Laravel 環境を想定
