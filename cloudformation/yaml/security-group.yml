@@ -16,7 +16,7 @@ Resources:
   SecurityGroupRDS:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: !Sub ${Environment}-RDS
+      GroupDescription: !Sub ${Environment}-SECURITYGROUP-RDS
       SecurityGroupIngress:
         - SourceSecurityGroupId: !Ref SecurityGroupFargate
           IpProtocol: TCP
@@ -26,7 +26,7 @@ Resources:
         Fn::ImportValue: !Sub ${Environment}-VPC
       Tags:
         - Key: Name
-          Value: !Sub ${Environment}-RDS
+          Value: !Sub ${Environment}-SECURITYGROUP-RDS
         - Key: Environment
           Value: !Ref Environment 
         - Key: Department
@@ -36,7 +36,7 @@ Resources:
   SecurityGroupRedis:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: !Sub ${Environment}-REDIS
+      GroupDescription: !Sub ${Environment}-SECURITYGROUP-REDIS
       SecurityGroupIngress:
         - SourceSecurityGroupId: !Ref SecurityGroupFargate
           IpProtocol: TCP
@@ -46,7 +46,7 @@ Resources:
         Fn::ImportValue: !Sub ${Environment}-VPC
       Tags:
         - Key: Name
-          Value: !Sub ${Environment}-REDIS
+          Value: !Sub ${Environment-SECURITYGROUP-REDIS
         - Key: Environment
           Value: !Ref Environment 
         - Key: Department
@@ -56,7 +56,7 @@ Resources:
   SecurityGroupALB:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: !Sub ${Environment}-ALB
+      GroupDescription: !Sub ${Environment}-SECURITYGROUP-ALB
       SecurityGroupIngress:      
         - CidrIp: 0.0.0.0/0
           IpProtocol: TCP
@@ -66,7 +66,7 @@ Resources:
         Fn::ImportValue: !Sub ${Environment}-VPC
       Tags:
         - Key: Name
-          Value: !Sub ${Environment}-ALB
+          Value: !Sub ${Environment}-SECURITYGROUP-ALB
         - Key: Environment
           Value: !Ref Environment 
         - Key: Department
@@ -76,7 +76,7 @@ Resources:
   SecurityGroupFargate:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: !Sub ${Environment}-FARGATE
+      GroupDescription: !Sub ${Environment}-SECURITYGROUP-FARGATE
       SecurityGroupIngress:
         - SourceSecurityGroupId: !Ref SecurityGroupALB
           IpProtocol: TCP
@@ -103,7 +103,7 @@ Resources:
         Fn::ImportValue: !Sub ${Environment}-VPC
       Tags:
         - Key: Name
-          Value: !Sub ${Environment}-FARGATE
+          Value: !Sub ${Environment}-SECURITYGROUP-FARGATE
         - Key: Environment
           Value: !Ref Environment 
         - Key: Department
